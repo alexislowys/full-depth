@@ -9,8 +9,9 @@ Reconstructing the complete Nasdaq limit order book from raw binary TotalView-IT
 | Metric | Result |
 |---|---|
 | Framing scan (week 1) | **423,285,709 messages, byte accounting EXACT, 18.6M msgs/sec** (mmap cold, I/O included, Apple M-series) |
+| Full decode (week 2) | **17.2M msgs/sec decoding every field of all 23 message types; 192.7M locate↔symbol cross-checks, 0 mismatches; 0 timestamp/side violations** |
 | Throughput (parse + book build, full-day replay) | _TBD — target ≥10M msgs/sec_ |
-| Correctness | _byte-exact framing done; book-invariant sweep TBD_ |
+| Correctness | _byte-exact framing + field-level decode validated; book-invariant sweep TBD_ |
 | Analytics | _TBD — OFI–midprice stylized fact, top-20 symbols_ |
 
 Benchmark methodology: mmap'd decompressed file, warm cache, parse-only rate reported separately from parse+book rate, median of 5 runs, machine spec stated. No benchmark theater.

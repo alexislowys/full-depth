@@ -13,11 +13,15 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 
 add_library(itch
   src/itch/scanner.cpp
+  src/itch/messages.cpp
 )
 target_include_directories(itch PUBLIC src)
 
 add_executable(itch_scan apps/itch_scan.cpp)
 target_link_libraries(itch_scan PRIVATE itch)
+
+add_executable(itch_decode apps/itch_decode.cpp)
+target_link_libraries(itch_decode PRIVATE itch)
 
 enable_testing()
 
@@ -30,8 +34,12 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_executable(scanner_test tests/scanner_test.cpp)
-target_link_libraries(scanner_test PRIVATE itch GTest::gtest_main)
+add_executable(itch_tests
+  tests/scanner_test.cpp
+  tests/messages_test.cpp
+  tests/decoder_test.cpp
+)
+target_link_libraries(itch_tests PRIVATE itch GTest::gtest_main)
 
 include(GoogleTest)
-gtest_discover_tests(scanner_test)
+gtest_discover_tests(itch_tests)
