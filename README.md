@@ -14,11 +14,11 @@ Reconstructing the complete Nasdaq limit order book from raw binary TotalView-IT
 | Benchmarks (week 5) | scan **20.2M**, full decode **17.5M** msgs/sec medians — I/O included; methodology in [docs/benchmarks.md](docs/benchmarks.md) |
 | Optimization (week 6) | whole-market book build **3.0M → 7.4M msgs/sec (2.5×)** — profile-driven: sorted-vector ladders + open-addressing order store with backshift deletion; every experiment (including the failed ones) measured and documented |
 | Correctness | byte-exact framing; field-level decode validated; zero book violations with auction-aware crossed-book invariant |
-
-**Microstructure find:** a naive "book never crosses while trading" invariant fires 458 times on this day — every one traced to 4 symbols: ANPC and BDTX (IPO'd that very day) and RKDA and DTSS (volatility-halt reopenings, DTSS crossed 5.4 minutes through repeated LULD collar extensions). Crossed displayed books are *legitimate* between a resumption and the auction's cross print. The invariant is auction-aware; details in [docs/spec-notes.md](docs/spec-notes.md).
 | Analytics | _TBD — OFI–midprice stylized fact, top-20 symbols_ |
 
-Benchmark methodology: mmap'd decompressed file, warm cache, parse-only rate reported separately from parse+book rate, median of 5 runs, machine spec stated. No benchmark theater.
+**Microstructure find:** a naive "book never crosses while trading" invariant fires 458 times on this day — every one traced to 4 symbols: ANPC and BDTX (IPO'd that very day) and RKDA and DTSS (volatility-halt reopenings, DTSS crossed 5.4 minutes through repeated LULD collar extensions). Crossed displayed books are *legitimate* between a resumption and the auction's cross print. The invariant is auction-aware; details in [docs/spec-notes.md](docs/spec-notes.md).
+
+Benchmark methodology: mmap'd decompressed file, I/O included, every run reported plus median, machine spec stated. No benchmark theater — see [docs/benchmarks.md](docs/benchmarks.md).
 
 ## Data
 
