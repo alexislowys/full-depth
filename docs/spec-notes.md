@@ -106,4 +106,11 @@ them over from the original order).
 - Cross trades (`Q`) and non-cross trades (`P`) do not mutate the book
   (P executes against non-displayable orders). P's order reference number
   is zero-filled since Dec 2010 — never resolve it against the book.
+- A displayed book may legitimately cross/lock while a stock is in
+  trading state `T`, between a transition into `T` and that symbol's next
+  `Q` cross print (IPO releases, LULD/halt resumptions — auction hasn't
+  cleared the crossed interest yet). Observed on 2020-01-30: ANPC and
+  BDTX (same-day IPOs), RKDA and DTSS (volatility-halt reopenings; DTSS
+  stayed crossed 5.4 min through repeated collar extensions). A
+  never-crossed invariant must be auction-aware or it false-positives.
 - Shares in `Q` (cross) are 8 bytes, not 4.

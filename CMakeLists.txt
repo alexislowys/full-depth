@@ -23,6 +23,15 @@ target_link_libraries(itch_scan PRIVATE itch)
 add_executable(itch_decode apps/itch_decode.cpp)
 target_link_libraries(itch_decode PRIVATE itch)
 
+add_library(book
+  src/book/book.cpp
+  src/book/engine.cpp
+)
+target_link_libraries(book PUBLIC itch)
+
+add_executable(itch_replay apps/itch_replay.cpp)
+target_link_libraries(itch_replay PRIVATE book)
+
 enable_testing()
 
 include(FetchContent)
@@ -38,8 +47,9 @@ add_executable(itch_tests
   tests/scanner_test.cpp
   tests/messages_test.cpp
   tests/decoder_test.cpp
+  tests/book_test.cpp
 )
-target_link_libraries(itch_tests PRIVATE itch GTest::gtest_main)
+target_link_libraries(itch_tests PRIVATE book GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(itch_tests)

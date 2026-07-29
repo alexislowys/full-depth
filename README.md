@@ -10,8 +10,11 @@ Reconstructing the complete Nasdaq limit order book from raw binary TotalView-IT
 |---|---|
 | Framing scan (week 1) | **423,285,709 messages, byte accounting EXACT, 18.6M msgs/sec** (mmap cold, I/O included, Apple M-series) |
 | Full decode (week 2) | **17.2M msgs/sec decoding every field of all 23 message types; 192.7M locate↔symbol cross-checks, 0 mismatches; 0 timestamp/side violations** |
-| Throughput (parse + book build, full-day replay) | _TBD — target ≥10M msgs/sec_ |
-| Correctness | _byte-exact framing + field-level decode validated; book-invariant sweep TBD_ |
+| Book replay (weeks 3–4) | **Whole-market book (8,915 symbols, 186.6M adds, peak 1.93M live orders): 0 invariant violations, all 8,915 end-of-day audits pass, book fully empties at end of session** |
+| Throughput (parse + book build, full-day replay) | baseline **3.0M msgs/sec** whole-market / **17.0M msgs/sec** single-symbol (map-based structures — optimization pass pending, target ≥10M whole-market) |
+| Correctness | byte-exact framing; field-level decode validated; zero book violations with auction-aware crossed-book invariant |
+
+**Microstructure find:** a naive "book never crosses while trading" invariant fires 458 times on this day — every one traced to 4 symbols: ANPC and BDTX (IPO'd that very day) and RKDA and DTSS (volatility-halt reopenings, DTSS crossed 5.4 minutes through repeated LULD collar extensions). Crossed displayed books are *legitimate* between a resumption and the auction's cross print. The invariant is auction-aware; details in [docs/spec-notes.md](docs/spec-notes.md).
 | Analytics | _TBD — OFI–midprice stylized fact, top-20 symbols_ |
 
 Benchmark methodology: mmap'd decompressed file, warm cache, parse-only rate reported separately from parse+book rate, median of 5 runs, machine spec stated. No benchmark theater.
