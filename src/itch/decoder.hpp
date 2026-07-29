@@ -13,6 +13,11 @@
 namespace itch {
 
 struct NullHandler {
+    // Called with the NEXT message's payload before the current one is
+    // dispatched — a hook for handlers to issue memory prefetches that
+    // hide DRAM latency on large lookup structures. No-op by default.
+    void prefetch_hint(const std::uint8_t*, std::uint16_t) {}
+
     void on_system_event(const SystemEvent&) {}
     void on_stock_directory(const StockDirectory&) {}
     void on_stock_trading_action(const StockTradingAction&) {}
@@ -105,6 +110,14 @@ StreamResult decode_stream(const std::uint8_t* data, std::size_t size,
     while (pos + 2 <= size) {
         const std::uint16_t len = be16(data + pos);
         if (len == 0 || pos + 2 + len > size) return r;
+        // One-frame lookahead: let the handler start pulling whatever
+        // the next message will touch while we process this one.
+        const std::size_t next = pos + 2u + len;
+        if (next + 2 <= size) {
+            const std::uint16_t next_len = be16(data + next);
+            if (next_len != 0 && next + 2 + next_len <= size)
+                h.prefetch_hint(data + next + 2, next_len);
+        }
         const DecodeStatus s = decode_message(data + pos + 2, len, h);
         if (s != DecodeStatus::Ok) {
             r.status = s;

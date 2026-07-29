@@ -1,11 +1,11 @@
 #pragma once
 
 #include "book/book.hpp"
+#include "book/order_store.hpp"
 #include "itch/decoder.hpp"
 
 #include <cstdint>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace book {
@@ -50,6 +50,24 @@ public:
     // Empty filter = build books for every symbol.
     explicit Engine(std::string filter_symbol = {});
 
+    // Lookahead hook from decode_stream: prefetch the order-store slot
+    // the next message's reference number will probe.
+    void prefetch_hint(const std::uint8_t* p, std::uint16_t) {
+        switch (p[0]) {
+            case 'A':
+            case 'F':
+            case 'E':
+            case 'C':
+            case 'X':
+            case 'D':
+            case 'U':
+                orders_.prefetch(itch::be64(p + 11));
+                break;
+            default:
+                break;
+        }
+    }
+
     void on_stock_directory(const itch::StockDirectory& m);
     void on_stock_trading_action(const itch::StockTradingAction& m);
     void on_cross_trade(const itch::CrossTrade& m);
@@ -74,6 +92,8 @@ public:
     const EngineStats& stats() const { return stats_; }
     std::uint64_t live_orders() const { return orders_.size(); }
 
+    using Order = OrderStore::Order;
+
     // Locate resolved from the directory spin for the filter symbol;
     // 0 if unfiltered or not (yet) seen.
     std::uint16_t target_locate() const { return target_locate_; }
@@ -86,13 +106,6 @@ public:
     bool audit(std::uint16_t locate) const;
 
 private:
-    struct Order {
-        std::uint16_t locate;
-        char side;
-        std::uint32_t shares;
-        std::uint32_t price;
-    };
-
     bool tracked(std::uint16_t locate) const {
         return filter_symbol_.empty() || locate == target_locate_;
     }
@@ -103,7 +116,7 @@ private:
 
     std::string filter_symbol_;
     std::uint16_t target_locate_ = 0;
-    std::unordered_map<std::uint64_t, Order> orders_;
+    OrderStore orders_;
     std::vector<Book> books_;
     std::vector<char> state_;         // trading state per locate ('H' default)
     // True from a transition into 'T' until that symbol's next Q cross:

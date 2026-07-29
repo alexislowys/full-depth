@@ -27,21 +27,19 @@ void print_top(const book::Engine& e, std::uint16_t locate, int depth) {
     std::printf("\n%s book, top %d (EOD):\n", e.symbol_of(locate).c_str(),
                 depth);
     std::printf("  %-22s | %s\n", "BID shares@price", "ASK shares@price");
-    auto bid = b->bids().begin();
-    auto ask = b->asks().begin();
     for (int i = 0; i < depth; ++i) {
         char left[64] = "", right[64] = "";
-        if (bid != b->bids().end()) {
+        if (static_cast<std::size_t>(i) < b->bid_levels()) {
+            const auto q = b->bid_at(static_cast<std::size_t>(i));
             std::snprintf(left, sizeof left, "%6llu @ %9.4f (%u)",
-                          static_cast<unsigned long long>(bid->second.shares),
-                          dollars(bid->first), bid->second.orders);
-            ++bid;
+                          static_cast<unsigned long long>(q.level.shares),
+                          dollars(q.price), q.level.orders);
         }
-        if (ask != b->asks().end()) {
+        if (static_cast<std::size_t>(i) < b->ask_levels()) {
+            const auto q = b->ask_at(static_cast<std::size_t>(i));
             std::snprintf(right, sizeof right, "%6llu @ %9.4f (%u)",
-                          static_cast<unsigned long long>(ask->second.shares),
-                          dollars(ask->first), ask->second.orders);
-            ++ask;
+                          static_cast<unsigned long long>(q.level.shares),
+                          dollars(q.price), q.level.orders);
         }
         if (!left[0] && !right[0]) break;
         std::printf("  %-22s | %s\n", left, right);

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <map>
 #include <optional>
+#include <vector>
 
 namespace book {
 
@@ -18,9 +18,13 @@ struct Quote {
     Level level;
 };
 
-// One symbol's displayed limit order book: aggregated price levels per
-// side. Correct-first implementation (std::map ladders); the
-// performance pass replaces the containers, not the interface.
+// One symbol's displayed limit order book, structure-of-arrays: prices
+// in their own contiguous u32 vector (16 per cache line — the binary
+// search that dominated profiles touches ~6x fewer lines than with
+// array-of-structs), levels in a parallel vector. Both sides
+// price-ascending — all orientation combinations were measured on
+// full-day replay and ascending-both won by 1.7–2.5x; best bid is the
+// last bid element, best ask the first ask element.
 class Book {
 public:
     // Returns false on bookkeeping underflow (removing more shares than
@@ -37,29 +41,32 @@ public:
     std::optional<Quote> best_ask() const;
 
     // Displayed book crossed or locked: best bid >= best ask. Legitimate
-    // while a stock is halted/paused/quote-only; a violation while
-    // trading. The caller knows the trading state.
+    // while a stock is halted/paused/quote-only or a reopening auction
+    // is pending; a violation while trading normally.
     bool crossed_or_locked() const;
 
-    std::size_t bid_levels() const { return bids_.size(); }
-    std::size_t ask_levels() const { return asks_.size(); }
+    std::size_t bid_levels() const { return bid_px_.size(); }
+    std::size_t ask_levels() const { return ask_px_.size(); }
 
-    const std::map<std::uint32_t, Level, std::greater<std::uint32_t>>&
-    bids() const {
-        return bids_;
+    // Depth accessors, i = 0 at the touch.
+    Quote bid_at(std::size_t i) const {
+        const std::size_t k = bid_px_.size() - 1 - i;
+        return {bid_px_[k], bid_lv_[k]};
     }
-    const std::map<std::uint32_t, Level>& asks() const { return asks_; }
+    Quote ask_at(std::size_t i) const { return {ask_px_[i], ask_lv_[i]}; }
+
+    bool operator==(const Book&) const = default;
 
 private:
-    template <class Ladder>
-    static bool add_to(Ladder& ladder, std::uint32_t price,
+    static bool add_to(std::vector<std::uint32_t>& px,
+                       std::vector<Level>& lv, std::uint32_t price,
                        std::uint32_t shares);
-    template <class Ladder>
-    static bool remove_from(Ladder& ladder, std::uint32_t price,
+    static bool remove_from(std::vector<std::uint32_t>& px,
+                            std::vector<Level>& lv, std::uint32_t price,
                             std::uint32_t shares, bool order_gone);
 
-    std::map<std::uint32_t, Level, std::greater<std::uint32_t>> bids_;
-    std::map<std::uint32_t, Level> asks_;
+    std::vector<std::uint32_t> bid_px_, ask_px_; // ascending
+    std::vector<Level> bid_lv_, ask_lv_;         // parallel to *_px_
 };
 
 } // namespace book

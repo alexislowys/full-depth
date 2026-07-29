@@ -50,4 +50,34 @@ other (139.4–140.9 s), so the baseline is stable.
 Baseline book structures are deliberately naive (`std::map` price
 ladders, `std::unordered_map<u64, Order>` order store) — correctness
 first. The optimization pass replaces the containers behind the same
-interface; this table is the before picture.
+interface; the table above is the before picture.
+
+## Optimization pass — what worked and what didn't
+
+Every step was profiled (`sample`), measured on the full-day replay, and
+kept only if the full correctness gate still passed (57 unit tests, zero
+violations, 8,915/8,915 end-of-day audits). Whole-market book build:
+
+| Change | msgs/s | Verdict |
+|---|---|---|
+| baseline: `std::map` ladders + `std::unordered_map` store | 3.0M | profile: map ops ≈47% of samples, hash+allocator ≈15% |
+| sorted-vector ladders + open-addressing store (fibonacci hash, backshift deletion, contiguous 12-byte orders) | 6.3M | **kept — 2.1×** |
+| ladder orientation experiments (asks descending; both descending) | 3.7M / 2.5M | reverted — ascending-both is fastest; churn is asymmetric per side (bid churn skews touch-ward, ask churn deep) |
+| O(1) fast path for back()-of-ladder hits | ~6.7M | kept (harmless), no measurable gain |
+| structure-of-arrays ladders (prices in own u32 array, 6× search density) | 6.6M | kept (cleaner memory), no measurable gain |
+| one-frame lookahead + order-store slot prefetch | 6.9M | kept, marginal |
+| **final** | **7.4M median** (bench, 3 runs, 56.1–58.6 s) | **2.5× total** |
+
+Why the 10M target wasn't reached (yet): at 7.4M msgs/s the engine
+spends ~135 ns per message, and the order store — ~84 MB of
+randomly-probed table, far beyond any cache level — costs roughly a DRAM
+round-trip on nearly every book message. Three independent structural
+rewrites of the *ladders* landed inside the same 6.6–6.9M band, which is
+the signature of a memory-latency bound elsewhere. Next lever:
+counter-level profiling (cache-miss rates via Instruments) and a deeper
+prefetch pipeline (N-message lookahead queue rather than one frame).
+
+A background-QoS trap worth recording: one replay measured 0.4M msgs/s
+(16× slow) because macOS had demoted the process to background I/O
+priority — mmap page faults crawl in that state. Benchmarks here are
+foreground runs only.

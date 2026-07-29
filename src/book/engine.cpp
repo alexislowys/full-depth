@@ -65,9 +65,8 @@ void Engine::check_crossed(std::uint16_t locate, std::uint64_t ts_ns) {
 
 void Engine::on_add_order(const itch::AddOrder& m) {
     if (!tracked(m.h.locate)) return;
-    const auto [it, inserted] = orders_.try_emplace(
-        m.ref, Order{m.h.locate, m.side, m.shares, m.price});
-    if (!inserted) {
+    if (!orders_.insert(m.ref,
+                        Order{m.shares, m.price, m.h.locate, m.side})) {
         ++violations_.duplicate_ref;
         return;
     }
@@ -80,12 +79,9 @@ void Engine::on_add_order(const itch::AddOrder& m) {
 
 Engine::Order* Engine::find(std::uint64_t ref,
                             std::uint64_t& unknown_counter) {
-    const auto it = orders_.find(ref);
-    if (it == orders_.end()) {
-        ++unknown_counter;
-        return nullptr;
-    }
-    return &it->second;
+    Order* ord = orders_.find(ref);
+    if (!ord) ++unknown_counter;
+    return ord;
 }
 
 // Shared reduction path for executions, partial cancels, and deletes.
@@ -164,14 +160,14 @@ void Engine::on_order_replace(const itch::OrderReplace& m) {
     if (!tracked(m.h.locate)) return;
     Order* orig = find(m.orig_ref, violations_.replace_unknown);
     if (!orig) return; // no side/symbol to inherit — cannot synthesize
-    const std::uint16_t locate = orig->locate;
-    const char side = orig->side;
-    if (!books_[locate].remove(side, orig->price, orig->shares, true))
+    // Copy before erase — the store invalidates pointers on mutation.
+    const Order old = *orig;
+    const std::uint16_t locate = old.locate;
+    const char side = old.side;
+    if (!books_[locate].remove(side, old.price, old.shares, true))
         ++violations_.ladder_underflow;
     orders_.erase(m.orig_ref);
-    const auto [it, inserted] = orders_.try_emplace(
-        m.new_ref, Order{locate, side, m.shares, m.price});
-    if (!inserted) {
+    if (!orders_.insert(m.new_ref, Order{m.shares, m.price, locate, side})) {
         ++violations_.duplicate_ref;
         return;
     }
@@ -184,12 +180,11 @@ void Engine::on_order_replace(const itch::OrderReplace& m) {
 
 bool Engine::audit(std::uint16_t locate) const {
     Book rebuilt;
-    for (const auto& [ref, ord] : orders_) {
-        if (ord.locate != locate) continue;
-        rebuilt.add(ord.side, ord.price, ord.shares);
-    }
-    return rebuilt.bids() == books_[locate].bids() &&
-           rebuilt.asks() == books_[locate].asks();
+    orders_.for_each([&](std::uint64_t, const Order& ord) {
+        if (ord.locate == locate)
+            rebuilt.add(ord.side, ord.price, ord.shares);
+    });
+    return rebuilt == books_[locate];
 }
 
 } // namespace book

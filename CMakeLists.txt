@@ -51,6 +51,7 @@ add_executable(itch_tests
   tests/messages_test.cpp
   tests/decoder_test.cpp
   tests/book_test.cpp
+  tests/order_store_test.cpp
 )
 target_link_libraries(itch_tests PRIVATE book GTest::gtest_main)
 
