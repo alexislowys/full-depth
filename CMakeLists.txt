@@ -32,6 +32,9 @@ target_link_libraries(book PUBLIC itch)
 add_executable(itch_replay apps/itch_replay.cpp)
 target_link_libraries(itch_replay PRIVATE book)
 
+add_executable(itch_bench apps/itch_bench.cpp)
+target_link_libraries(itch_bench PRIVATE book)
+
 enable_testing()
 
 include(FetchContent)
