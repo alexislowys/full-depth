@@ -100,6 +100,10 @@ public:
     const Book* book_for(std::uint16_t locate) const;
     const std::string& symbol_of(std::uint16_t locate) const;
 
+    // Read-only order lookup for wrapping handlers (e.g. the export
+    // layer peeks the resting order before forwarding an execution).
+    const Order* peek(std::uint64_t ref) const { return orders_.find(ref); }
+
     // Rebuild one symbol's ladders from the live order store and compare
     // with the incrementally maintained book. True iff identical. The
     // end-of-day audit: incremental state must equal from-scratch state.

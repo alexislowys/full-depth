@@ -35,6 +35,9 @@ target_link_libraries(itch_replay PRIVATE book)
 add_executable(itch_bench apps/itch_bench.cpp)
 target_link_libraries(itch_bench PRIVATE book)
 
+add_executable(itch_export apps/itch_export.cpp)
+target_link_libraries(itch_export PRIVATE book)
+
 enable_testing()
 
 include(FetchContent)
@@ -52,6 +55,7 @@ add_executable(itch_tests
   tests/decoder_test.cpp
   tests/book_test.cpp
   tests/order_store_test.cpp
+  tests/exporter_test.cpp
 )
 target_link_libraries(itch_tests PRIVATE book GTest::gtest_main)
 

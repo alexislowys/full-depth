@@ -13,6 +13,7 @@ Reconstructing the complete Nasdaq limit order book from raw binary TotalView-IT
 | Book replay (weeks 3–4) | **Whole-market book (8,915 symbols, 186.6M adds, peak 1.93M live orders): 0 invariant violations, all 8,915 end-of-day audits pass, book fully empties at end of session** |
 | Benchmarks (week 5) | scan **20.2M**, full decode **17.5M** msgs/sec medians — I/O included; methodology in [docs/benchmarks.md](docs/benchmarks.md) |
 | Optimization (week 6) | whole-market book build **3.0M → 7.4M msgs/sec (2.5×)** — profile-driven: sorted-vector ladders + open-addressing order store with backshift deletion; every experiment (including the failed ones) measured and documented |
+| Export layer (week 7) | **10.3M trade + 208.8M L1 records from the full day, byte-frozen C++↔Python contract ([docs/export-format.md](docs/export-format.md)), 19/19 Python-side integrity checks, Parquet via zstd** |
 | Correctness | byte-exact framing; field-level decode validated; zero book violations with auction-aware crossed-book invariant |
 | Analytics | _TBD — OFI–midprice stylized fact, top-20 symbols_ |
 

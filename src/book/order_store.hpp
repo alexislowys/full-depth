@@ -62,6 +62,10 @@ public:
         return nullptr;
     }
 
+    const Order* find(std::uint64_t ref) const {
+        return const_cast<OrderStore*>(this)->find(ref);
+    }
+
     // No-op if ref is absent.
     void erase(std::uint64_t ref) {
         std::size_t i = slot(ref);
