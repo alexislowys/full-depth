@@ -1,0 +1,58 @@
+# Week 8 — Microstructure analytics on the top-20 subsets
+
+Three studies over the exported L1/trade streams (regular hours
+2020-01-30, duration-weighted throughout — the change-only L1 stream
+makes row-count averages meaningless). Scripts in
+[analytics/studies/](../analytics/studies/), figures in
+[analytics/figures/](../analytics/figures/), tables in
+[analytics/output/](../analytics/output/).
+
+**Verification:** every headline number was independently recomputed by
+an adversarial reviewer from the raw subsets — AAPL's time-weighted
+spread matched to full float precision (1.3490716886 bps) and a spot
+OFI bucket matched exactly (−6,853 over 2,783 events, 10:00–10:01).
+
+## Order flow imbalance (`ofi.py`)
+
+Best-level OFI per Cont–Kukanov–Stoikov, ~14M valid events across 20
+symbols. Contemporaneous 1-min OFI vs mid-change R² (n=390 buckets)
+spans **0.14–0.91** and splits on instrument type:
+
+- Deep-book, penny-wide names where the touch binds: VXX 0.91, UVXY
+  0.83, AMD 0.80, MSFT 0.71.
+- Mega ETFs at the bottom (SPY 0.18, IWM 0.22): one venue's best level
+  is a sliver of their cross-venue liquidity.
+- Wide-tick, high-price names (AMZN 0.30, TSLA 0.55) in between — mids
+  move by repricing inside the spread, not queue depletion.
+
+Exactly the CKS cross-sectional pattern; week 9 treats ETFs and
+wide-tick names separately.
+
+## Quoted liquidity (`liquidity.py`)
+
+Time-weighted spread and touch depth, per symbol. The liquidity
+frontier separates three regimes: index ETFs (SPY **0.46 bps** with
+$553k at the touch), single names along an inverse spread–depth
+diagonal (MSFT 0.97 bps to TSLA 5.84 bps — earnings names visibly
+wide), and volatility ETPs — wide in bps (6.6–10.2) yet huge in shares
+(VXX 18.7k at touch): when the 1-cent tick is a large fraction of a low
+price and vol is elevated, inventory risk sets the spread, not queue
+competition. All 20 books were two-sided 100.000% of regular hours —
+verified genuine, not a filtering artifact.
+
+## Order activity (`activity.py`)
+
+- Market-wide (8,915 symbols): median **19.4 cancels+deletes per
+  execution**; ~20 adds per execution. The book is mostly conversation,
+  rarely commitment.
+- Closing cross concentration: for Nasdaq-listed names, the 16:00 cross
+  prints up to ~31% of the day's total Nasdaq executions (MDLZ 31%,
+  INTC 28%) — passive/index flow queues for one print. (SPY/IWM/VXX/UVXY
+  are Arca-listed: no Nasdaq cross exists — n/a, not zero.)
+- Hidden executions (P prints) are 15–40% of executed shares and are
+  reported alongside displayed volume, not silently dropped.
+- Earnings fingerprint: TSLA/FB/MSFT (reported the prior evening) traded
+  **25.9%** of their daily displayed volume in the first 30 minutes vs
+  16.5% for ordinary single names — while AMZN, reporting *that
+  evening*, sat at 15.5%. Post-earnings reaction concentrates volume at
+  the open; pre-earnings anticipation does not.

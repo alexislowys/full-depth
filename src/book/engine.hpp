@@ -43,6 +43,16 @@ struct EngineStats {
     std::uint64_t peak_live_orders = 0;
 };
 
+// Per-symbol message-mix counters — the denominator data for
+// cancel-to-trade ratios and activity profiles downstream.
+struct LocateOps {
+    std::uint64_t adds = 0;
+    std::uint64_t executes = 0;
+    std::uint64_t cancels = 0;
+    std::uint64_t deletes = 0;
+    std::uint64_t replaces = 0;
+};
+
 // Whole-market order book engine. Plugs into itch::decode_stream as the
 // handler; optionally restricted to a single symbol (week-3 gate mode).
 class Engine : public itch::NullHandler {
@@ -90,6 +100,9 @@ public:
         return crossed_events_;
     }
     const EngineStats& stats() const { return stats_; }
+    const LocateOps& ops_of(std::uint16_t locate) const {
+        return locate_ops_[locate];
+    }
     std::uint64_t live_orders() const { return orders_.size(); }
 
     using Order = OrderStore::Order;
@@ -122,6 +135,7 @@ private:
     std::uint16_t target_locate_ = 0;
     OrderStore orders_;
     std::vector<Book> books_;
+    std::vector<LocateOps> locate_ops_;
     std::vector<char> state_;         // trading state per locate ('H' default)
     // True from a transition into 'T' until that symbol's next Q cross:
     // the reopening/IPO auction hasn't printed, so a crossed displayed

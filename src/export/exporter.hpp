@@ -220,6 +220,26 @@ public:
         } else {
             ok = false;
         }
+        f = std::fopen((out_dir_ + "/ops.csv").c_str(), "w");
+        if (f) {
+            std::fprintf(f, "locate,adds,executes,cancels,deletes,replaces\n");
+            for (std::uint32_t loc = 0; loc < kLocates; ++loc) {
+                if (engine_.symbol_of(static_cast<std::uint16_t>(loc)) == "?")
+                    continue;
+                const auto& o =
+                    engine_.ops_of(static_cast<std::uint16_t>(loc));
+                std::fprintf(
+                    f, "%u,%llu,%llu,%llu,%llu,%llu\n", loc,
+                    static_cast<unsigned long long>(o.adds),
+                    static_cast<unsigned long long>(o.executes),
+                    static_cast<unsigned long long>(o.cancels),
+                    static_cast<unsigned long long>(o.deletes),
+                    static_cast<unsigned long long>(o.replaces));
+            }
+            if (std::fclose(f) != 0) ok = false;
+        } else {
+            ok = false;
+        }
         f = std::fopen((out_dir_ + "/meta.txt").c_str(), "w");
         if (f) {
             std::fprintf(f, "source=%s\n", source_path.c_str());

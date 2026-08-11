@@ -22,6 +22,7 @@ Engine::Engine(std::string filter_symbol)
       books_(kMaxLocates),
       state_(kMaxLocates, 'H'), // absent from the H spin = treat as halted
       auction_pending_(kMaxLocates, false),
+      locate_ops_(kMaxLocates),
       symbols_(kMaxLocates) {}
 
 const Book* Engine::book_for(std::uint16_t locate) const {
@@ -72,6 +73,7 @@ void Engine::on_add_order(const itch::AddOrder& m) {
     }
     books_[m.h.locate].add(m.side, m.price, m.shares);
     ++stats_.adds;
+    ++locate_ops_[m.h.locate].adds;
     stats_.peak_live_orders =
         std::max<std::uint64_t>(stats_.peak_live_orders, orders_.size());
     check_crossed(m.h.locate, m.h.ts_ns);
@@ -124,6 +126,7 @@ void Engine::on_order_executed(const itch::OrderExecuted& m) {
         ord->shares -= n;
     ++stats_.executes;
     stats_.executed_shares += n;
+    ++locate_ops_[locate].executes;
     check_crossed(locate, m.h.ts_ns);
 }
 
@@ -146,6 +149,7 @@ void Engine::on_order_cancel(const itch::OrderCancel& m) {
     }
     reduce(m.ref, m.shares, false, violations_.unknown_ref);
     ++stats_.cancels;
+    ++locate_ops_[locate].cancels;
     check_crossed(locate, m.h.ts_ns);
 }
 
@@ -153,6 +157,7 @@ void Engine::on_order_delete(const itch::OrderDelete& m) {
     if (!tracked(m.h.locate)) return;
     reduce(m.ref, 0, true, violations_.unknown_ref);
     ++stats_.deletes;
+    ++locate_ops_[m.h.locate].deletes;
     check_crossed(m.h.locate, m.h.ts_ns);
 }
 
@@ -175,6 +180,7 @@ void Engine::on_order_replace(const itch::OrderReplace& m) {
     ++stats_.replaces;
     stats_.peak_live_orders =
         std::max<std::uint64_t>(stats_.peak_live_orders, orders_.size());
+    ++locate_ops_[locate].replaces;
     check_crossed(locate, m.h.ts_ns);
 }
 
