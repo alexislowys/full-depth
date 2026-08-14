@@ -16,7 +16,7 @@ Reconstructing the complete Nasdaq limit order book from raw binary TotalView-IT
 | Export layer (week 7) | **10.3M trade + 208.8M L1 records from the full day, byte-frozen C++↔Python contract ([docs/export-format.md](docs/export-format.md)), 19/19 Python-side integrity checks, Parquet via zstd** |
 | Correctness | byte-exact framing; field-level decode validated; zero book violations with auction-aware crossed-book invariant |
 | Analytics (week 8) | **OFI, liquidity, activity studies on top-20 subsets — headline numbers independently recomputed to full float precision; [docs/analytics-wk8.md](docs/analytics-wk8.md)** |
-| OFI–midprice study | _week 9 — predictive treatment, ETFs and wide-tick names split_ |
+| OFI–price impact study (week 9) | **CKS inverse depth–impact law reproduced: log-log slope −1.26 [−1.54, −0.98], R² 0.83 across 20 symbols; contemporaneous R² ~0.5 vs one-step-ahead ≤0.012 — described, honestly not forecast; [docs/analytics-wk9.md](docs/analytics-wk9.md)** |
 
 **Microstructure find:** a naive "book never crosses while trading" invariant fires 458 times on this day — every one traced to 4 symbols: ANPC and BDTX (IPO'd that very day) and RKDA and DTSS (volatility-halt reopenings, DTSS crossed 5.4 minutes through repeated LULD collar extensions). Crossed displayed books are *legitimate* between a resumption and the auction's cross print. The invariant is auction-aware; details in [docs/spec-notes.md](docs/spec-notes.md).
 
