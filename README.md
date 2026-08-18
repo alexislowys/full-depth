@@ -17,6 +17,11 @@ Reconstructing the complete Nasdaq limit order book from raw binary TotalView-IT
 | Correctness | byte-exact framing; field-level decode validated; zero book violations with auction-aware crossed-book invariant |
 | Analytics (week 8) | **OFI, liquidity, activity studies on top-20 subsets — headline numbers independently recomputed to full float precision; [docs/analytics-wk8.md](docs/analytics-wk8.md)** |
 | OFI–price impact study (week 9) | **CKS inverse depth–impact law reproduced: log-log slope −1.26 [−1.54, −0.98], R² 0.83 across 20 symbols; contemporaneous R² ~0.5 vs one-step-ahead ≤0.012 — described, honestly not forecast; [docs/analytics-wk9.md](docs/analytics-wk9.md)** |
+| External validation (week 10) | **15/15 Nasdaq-listed closing-cross prints match official closes to the cent** (Yahoo, split-de-adjusted); fresh-clone build 9s, replay PASS from README alone |
+
+![Price impact vs depth](analytics/figures/impact_vs_depth.png)
+
+Full story: [docs/writeup.md](docs/writeup.md).
 
 **Microstructure find:** a naive "book never crosses while trading" invariant fires 458 times on this day — every one traced to 4 symbols: ANPC and BDTX (IPO'd that very day) and RKDA and DTSS (volatility-halt reopenings, DTSS crossed 5.4 minutes through repeated LULD collar extensions). Crossed displayed books are *legitimate* between a resumption and the auction's cross print. The invariant is auction-aware; details in [docs/spec-notes.md](docs/spec-notes.md).
 
@@ -46,7 +51,23 @@ cmake --build build -j
 ctest --test-dir build
 ```
 
-Requires: CMake ≥ 3.24, a C++20 compiler. Tested with Apple clang 17 on macOS (arm64).
+Requires: CMake ≥ 3.24, a C++20 compiler, and network on first configure
+(GoogleTest arrives via FetchContent). Tested with Apple clang 17 on
+macOS (arm64); fresh clone builds in ~9 s.
+
+## Run
+
+Binaries land in `build/`. With a decompressed sample day in `data/`:
+
+```
+build/itch_scan   data/01302020.NASDAQ_ITCH50            # framing scan + byte accounting
+build/itch_decode data/01302020.NASDAQ_ITCH50            # field-level decode validation
+build/itch_replay data/01302020.NASDAQ_ITCH50 [SYMBOL]   # book replay + invariants + audits
+build/itch_bench  data/01302020.NASDAQ_ITCH50            # throughput benchmarks
+build/itch_export data/01302020.NASDAQ_ITCH50 data/export  # binary export for analytics
+```
+
+Python analytics setup and commands: [analytics/README.md](analytics/README.md).
 
 ## Scope
 

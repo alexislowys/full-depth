@@ -2,7 +2,7 @@
 
 Python readers for the C++ exporter's binary output (`trades.bin`, `l1.bin`,
 `symbols.csv`, `meta.txt`). Numpy structured dtypes match the packed C++
-structs byte-for-byte; record contract documented in `../docs/data.md`.
+structs byte-for-byte; record contract documented in `../docs/export-format.md`.
 
     python -m fulldepth.verify <export_dir>            # integrity checks
     python -m fulldepth.convert <export_dir> [out_dir] # -> trades.parquet, l1.parquet (zstd)
