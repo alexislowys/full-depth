@@ -24,7 +24,7 @@ Weeks 3–4 built the order book itself. The hard problem is that ITCH's modify 
 
 ### Benchmarks and optimization
 
-Week 5 was a harness before any tuning: full-day input, I/O included, every run reported plus the median, single-threaded, machine spec stated (Apple M4, 16 GB RAM, Apple clang 17, `-O2`). Baseline medians:
+Week 5 was a harness before any tuning: full-day input, I/O included, every run reported plus the median, single-threaded, machine spec stated (Apple M4, 16 GB RAM, Apple clang 17, `-O3` (CMake Release)). Baseline medians:
 
 | Stage | msgs/s | GB/s |
 |---|---|---|

@@ -11,6 +11,20 @@ endif()
 
 add_compile_options(-Wall -Wextra -Wpedantic)
 
+# libFuzzer target for the untrusted-input walkers (fuzz/decode_fuzz.cpp).
+# CI-only: Apple clang ships no libFuzzer runtime — build with upstream
+# clang (see the `fuzz` job in .github/workflows/ci.yml). When ON, the
+# whole tree is instrumented so ASan sees into libitch, not just the
+# fuzz driver's translation unit. OFF leaves normal builds untouched.
+option(FULLDEPTH_FUZZ
+  "Build decode_fuzz (needs clang with libFuzzer; Apple clang lacks it)"
+  OFF)
+if(FULLDEPTH_FUZZ)
+  add_compile_options(-fsanitize=fuzzer-no-link,address,undefined
+                      -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=address,undefined)
+endif()
+
 add_library(itch
   src/itch/scanner.cpp
   src/itch/messages.cpp
@@ -37,6 +51,13 @@ target_link_libraries(itch_bench PRIVATE book)
 
 add_executable(itch_export apps/itch_export.cpp)
 target_link_libraries(itch_export PRIVATE book)
+
+if(FULLDEPTH_FUZZ)
+  add_executable(decode_fuzz fuzz/decode_fuzz.cpp)
+  target_link_libraries(decode_fuzz PRIVATE itch)
+  target_compile_options(decode_fuzz PRIVATE -fsanitize=fuzzer)
+  target_link_options(decode_fuzz PRIVATE -fsanitize=fuzzer)
+endif()
 
 enable_testing()
 

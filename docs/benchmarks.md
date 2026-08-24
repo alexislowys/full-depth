@@ -29,7 +29,7 @@ No benchmark theater. Every number here is reproducible with
 
 ## Results — baseline (map-based book structures)
 
-Apple M4 (4P+6E), 16 GB RAM, macOS; Apple clang 17, `-O2` Release;
+Apple M4 (4P+6E), 16 GB RAM, macOS; Apple clang 17, `-O3` (CMake Release);
 medians below, per-run detail in the benchmark output.
 
 | Stage | median msgs/s | median GB/s | vs previous stage |
@@ -81,3 +81,49 @@ A background-QoS trap worth recording: one replay measured 0.4M msgs/s
 (16× slow) because macOS had demoted the process to background I/O
 priority — mmap page faults crawl in that state. Benchmarks here are
 foreground runs only.
+
+## Latency percentiles
+
+(Engine-processing latencies on file replay — no network jitter, no
+queueing; the wire-side story lives in [transport.md](transport.md).)
+
+Per-message latency of the `decode_message` dispatch into the book
+engine (`itch_bench --stage latency`), same file, same machine, single
+foreground pass: 423,285,709 messages in 65.8 s (6.4M msgs/s with
+timers running, vs 7.4M for the untimed book stage — the difference is
+the instrumentation).
+
+**Instrumentation:** two `steady_clock::now()` calls per message,
+measured at ~23 ns mean per call on this machine; the clock advances in
+~41.67 ns ticks (mach_absolute_time timebase), so samples are quantized
+to the tick and each carries roughly one call (~23 ns) of overhead —
+reported, not subtracted. Framing walk, timestamp read, and the same
+one-frame prefetch hint `decode_stream` issues sit outside the timed
+span. **Histogram:** fixed bins, O(1) per message — 128 × 8 ns bins to
+1.024 µs, then one bin per power of two to ~1 s; percentiles are
+reported at the containing bin's upper edge, max is exact.
+
+| phase (ET) | messages | p50 | p99 | p99.9 | p99.99 | max | ≥1 µs |
+|---|---|---|---|---|---|---|---|
+| pre-open (<09:30) | 13,911,880 | 48 ns | 168 ns | 424 ns | 2.0 µs | 96.5 µs | 3,175 |
+| first 30 min | 45,093,814 | 48 ns | 376 ns | 672 ns | 2.0 µs | 14.1 ms | 11,051 |
+| mid-day | 315,297,777 | 48 ns | 424 ns | 752 ns | 4.1 µs | 15.2 ms | 125,638 |
+| last 30 min | 44,709,195 | 48 ns | 376 ns | 672 ns | 2.0 µs | 143.8 µs | 8,757 |
+| post-close (≥16:00) | 4,273,043 | 48 ns | 296 ns | 504 ns | 880 ns | 13.5 µs | 290 |
+| **overall** | **423,285,709** | **48 ns** | **424 ns** | **752 ns** | **2.0 µs** | **15.2 ms** | **148,911** |
+
+Reading the table: p50 is one clock tick in every phase — the median
+message completes faster than the timer can resolve. The tail does not
+peak at the open/close bursts: mid-day carries the worst p99/p99.9/
+p99.99. In file replay there is no queueing, so arrival-rate bursts
+cannot back messages up; per-message latency tracks data-structure
+state instead, and mid-day is when the order store is at peak occupancy
+and probes miss cache hardest. The two ms-scale maxima (14.1 ms /
+15.2 ms) are the size of a macOS scheduler quantum — preemption or an
+mmap page-fault stall landing inside a timed span, not engine work;
+0.035% of messages (148,911) took ≥1 µs.
+
+Caveat: this is a file replay. There is no network jitter, NIC, kernel
+receive path, or queueing delay in these numbers — they are
+engine-processing latencies only, the component a transport stack would
+add its own budget on top of.
