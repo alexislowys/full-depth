@@ -216,6 +216,32 @@ def main(export_dir: str) -> None:
     m = grp != "ETF"
     fit_ex = cross_section(logb[m], logd[m], "ex-ETF (16)")
 
+    # Robustness: same law at the longer horizons (betas already computed).
+    horizon_fits = []
+    for hcol in ("beta_30s", "beta_60s"):
+        bh = np.array([r[hcol] for r in rows])
+        ph = bh > 0
+        fit_h = cross_section(np.log10(bh[ph]),
+                              np.log10([r["AD_shares"]
+                                        for r, p in zip(rows, ph) if p]),
+                              f"all, {hcol[5:]}")
+        horizon_fits.append(fit_h)
+
+    # Influence: leave-one-out on the 10s slope — AMZN/TSLA are both the
+    # highest-leverage x-values and the largest residuals, so the fit
+    # must survive deleting any single symbol.
+    loo = []
+    for i in range(len(rows)):
+        keep = np.arange(len(rows)) != i
+        loo.append(cross_section(logb[keep], logd[keep],
+                                 f"loo-{rows[i]['symbol']}")["slope"])
+    loo_min, loo_max = min(loo), max(loo)
+    loo_min_sym = rows[int(np.argmin(loo))]["symbol"]
+    loo_max_sym = rows[int(np.argmax(loo))]["symbol"]
+    print(f"leave-one-out slope range (10s, 20 refits): "
+          f"[{loo_min:.3f} (drop {loo_min_sym}), "
+          f"{loo_max:.3f} (drop {loo_max_sym})]")
+
     # ---- money plot ----------------------------------------------------------
     fig, ax = plt.subplots(figsize=(9, 6.8))
     ax.set_facecolor("#fcfcfb")
@@ -276,7 +302,7 @@ def main(export_dir: str) -> None:
               f"{r['beta_30s']:>11.3e}{r['beta_60s']:>11.3e}")
     print("\nCross-section: log10(beta_10s) = a + b*log10(AD_shares)   "
           "[classic OLS SE, Student-t 95% CI]")
-    for f in (fit_all, fit_ex):
+    for f in (fit_all, fit_ex, *horizon_fits):
         print(f"  {f['label']:<12} n={f['n']:>2}  slope={f['slope']:+.3f} "
               f"[{f['ci_lo']:+.3f}, {f['ci_hi']:+.3f}]  "
               f"intercept={f['icept']:+.3f}  R2={f['r2']:.3f}")

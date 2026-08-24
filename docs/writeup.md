@@ -2,7 +2,7 @@
 
 ## One day, one laptop
 
-On Thursday, January 30, 2020, Nasdaq's TotalView-ITCH 5.0 feed carried 423,285,709 messages — 12.95 GB of big-endian binary once decompressed. Nasdaq publishes that day as a free sample file. I took it and, over nine weeks on a single laptop, built everything between the raw bytes and a finished statistical study: a framing scanner, a full decoder for all 23 message types, a whole-market order book engine covering 8,915 symbols, a benchmark harness, a binary export layer with a frozen C++/Python contract, and a set of microstructure analyses that ends with a replication of a published price-impact law. The engine replays the entire day at 7.4 million messages per second, single-threaded, with zero order-book invariant violations and all 8,915 end-of-day audits passing.
+On Thursday, January 30, 2020, Nasdaq's TotalView-ITCH 5.0 feed carried 423,285,709 messages — 12.95 GB of big-endian binary once decompressed. Nasdaq publishes that day as a free sample file. I took it and, across ten project milestones built in evenings over three weeks (July–August 2026) on a single laptop, built everything between the raw bytes and a finished statistical study: a framing scanner, a full decoder for all 23 message types, a whole-market order book engine covering 8,915 symbols, a benchmark harness, a binary export layer with a frozen C++/Python contract, and a set of microstructure analyses that ends with a replication of a published price-impact law. The engine replays the entire day at 7.4 million messages per second, single-threaded, with zero order-book invariant violations and all 8,915 end-of-day audits passing.
 
 ## Why this project
 
@@ -84,6 +84,23 @@ An adversarial reviewer reproduced the headline regressions from the raw parquet
 - More trading days, so the analytics stop being one-day, in-sample descriptions and the cross-sectional results get out-of-day checks.
 - Multi-level OFI: the best-level version visibly underexplains wide-tick names like AMZN, where mids move by repricing inside the spread.
 - Cross-venue depth for the index ETFs — SPY and IWM sit below the impact-depth line precisely because Nasdaq-only depth understates their consolidated liquidity.
+
+## How it was built, honestly
+
+Development was AI-assisted: I directed Claude Code through the plan,
+reviews, and iterations, and the repo is engineered so that trust never
+rests on authorship. Every headline number is reproduced by a committed
+clean-room verification script (`analytics/verification/verify_headlines.py`),
+the benchmark methodology is written down before the numbers, the unit
+tests were written from the spec rather than the implementation, and the
+final anchor is external: 15/15 Nasdaq-listed closing-cross prints match
+official closing prices to the cent. Check the claims, not the author.
+
+## References
+
+- Cont, R., Kukanov, A., & Stoikov, S. (2014). The price impact of order book events. *Journal of Financial Econometrics*, 12(1), 47–88.
+- Bouchaud, J.-P., Farmer, J. D., & Lillo, F. (2009). How markets slowly digest changes in supply and demand. In *Handbook of Financial Markets: Dynamics and Evolution*. Elsevier.
+- Nasdaq TotalView-ITCH 5.0 specification, nasdaqtrader.com.
 
 ## Build it yourself
 

@@ -16,3 +16,20 @@ jobs:
         run: cmake --build build -j
       - name: Test
         run: ctest --test-dir build --output-on-failure
+
+  # The order store is a hand-rolled open-addressing table with
+  # backward-shift deletion — exactly the code class sanitizers exist
+  # for. Every test runs under ASan+UBSan.
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (ASan+UBSan)
+        run: >
+          cmake -B build-san -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+      - name: Build
+        run: cmake --build build-san -j
+      - name: Test
+        run: ctest --test-dir build-san --output-on-failure

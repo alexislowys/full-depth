@@ -1,13 +1,17 @@
 # Full-Depth
 
-Reconstructing the complete Nasdaq limit order book from raw binary TotalView-ITCH 5.0 feed data in C++, with a Python analytics layer for market microstructure research.
+[![CI](https://github.com/alexislowys/full-depth/actions/workflows/ci.yml/badge.svg)](https://github.com/alexislowys/full-depth/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**TL;DR — I rebuilt the entire Nasdaq limit order book, for every one of 8,915 symbols, from a raw 13 GB binary exchange feed (423 million messages), in C++ at 7.4M messages/second — with zero integrity violations, and end-of-day books that match Nasdaq's official closing prices to the cent. On top of it, a Python analytics layer reproduces a published price-impact law from the microstructure literature.**
+
+Reconstructing the complete Nasdaq limit order book from raw binary TotalView-ITCH 5.0 feed data in C++, with a Python analytics layer for market microstructure research. Ten milestones, built in evenings July–August 2026 (planned as a 10-week roadmap, compressed — see the [commit history](https://github.com/alexislowys/full-depth/commits/main)). Development was AI-assisted (Claude Code, directed and reviewed by me); every headline number below is reproduced by a committed [clean-room verification script](analytics/verification/verify_headlines.py) and anchored against official market data — check the claims, not the author.
 
 ## Headline results
 
-> Work in progress — numbers land here as milestones complete.
-
 | Metric | Result |
 |---|---|
+| External validation | **15/15 Nasdaq-listed closing-cross prints match official closing prices to the cent**; every analytics headline number reproduced by an independent committed recomputation |
 | Framing scan (week 1) | **423,285,709 messages, byte accounting EXACT, 18.6M msgs/sec** (mmap cold, I/O included, Apple M-series) |
 | Full decode (week 2) | **17.2M msgs/sec decoding every field of all 23 message types; 192.7M locate↔symbol cross-checks, 0 mismatches; 0 timestamp/side violations** |
 | Book replay (weeks 3–4) | **Whole-market book (8,915 symbols, 186.6M adds, peak 1.93M live orders): 0 invariant violations, all 8,915 end-of-day audits pass, book fully empties at end of session** |
@@ -17,7 +21,7 @@ Reconstructing the complete Nasdaq limit order book from raw binary TotalView-IT
 | Correctness | byte-exact framing; field-level decode validated; zero book violations with auction-aware crossed-book invariant |
 | Analytics (week 8) | **OFI, liquidity, activity studies on top-20 subsets — headline numbers independently recomputed to full float precision; [docs/analytics-wk8.md](docs/analytics-wk8.md)** |
 | OFI–price impact study (week 9) | **CKS inverse depth–impact law reproduced: log-log slope −1.26 [−1.54, −0.98], R² 0.83 across 20 symbols; contemporaneous R² ~0.5 vs one-step-ahead ≤0.012 — described, honestly not forecast; [docs/analytics-wk9.md](docs/analytics-wk9.md)** |
-| External validation (week 10) | **15/15 Nasdaq-listed closing-cross prints match official closes to the cent** (Yahoo, split-de-adjusted); fresh-clone build 9s, replay PASS from README alone |
+| Reproducibility (week 10) | fresh-clone build 9 s, 75/75 tests, full replay PASS following the README alone |
 
 ![Price impact vs depth](analytics/figures/impact_vs_depth.png)
 
@@ -35,12 +39,12 @@ Free full-day TotalView-ITCH 5.0 sample files from Nasdaq's public server: <http
 
 ```
 src/itch/     ITCH 5.0 decoder (framing + message decode)
-src/book/     order book engine (arrives week 3)
-apps/         replay / scan binaries
-tests/        GoogleTest unit tests
-bench/        benchmark harness (arrives week 5)
-analytics/    Python: Parquet + microstructure notebooks (arrives week 7)
-docs/         spec notes, data provenance, methodology
+src/book/     order book engine + open-addressing order store
+src/export/   binary export layer (frozen C++/Python contract)
+apps/         scan / decode / replay / bench / export binaries
+tests/        GoogleTest unit tests (75)
+analytics/    Python: readers, studies, verification, figures
+docs/         spec notes, methodology, studies, writeup
 ```
 
 ## Build
@@ -72,3 +76,9 @@ Python analytics setup and commands: [analytics/README.md](analytics/README.md).
 ## Scope
 
 Market-data engineering and descriptive microstructure only. No trading signals, no price prediction, no backtesting.
+
+## Author
+
+Built by **Alexis Low** — data science undergraduate, Monash University.
+[LinkedIn](https://www.linkedin.com/in/alexislow10) · [GitHub](https://github.com/alexislowys) ·
+related: [insider-tracker](https://github.com/alexislowys/insider-tracker) (SEC Form 4 pipeline, Next.js + Postgres)

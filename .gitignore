@@ -1,4 +1,4 @@
-build/
+build*/
 data/
 *.gz
 *.NASDAQ_ITCH50
@@ -6,3 +6,5 @@ data/
 __pycache__/
 .venv/
 *.parquet
+!analytics/output/impact_depth.parquet
+!analytics/output/ofi_regressions.parquet
